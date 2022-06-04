@@ -18,6 +18,7 @@ import {
   roleMentionWarning,
   undefinedReceiverWarning,
 } from '../utils/praiseEmbeds';
+import { praiseAllowedInChannel } from '../utils/praisePermissions';
 
 import { CommandHandler } from 'src/interfaces/CommandHandler';
 
@@ -26,13 +27,25 @@ export const praiseHandler: CommandHandler = async (
   responseUrl
 ) => {
   const { guild, channel, member } = interaction;
-
+  console.log(interaction);
   if (!responseUrl) return;
 
   if (!guild || !member || !channel) {
     await interaction.editReply(await dmError());
     return;
   }
+
+  // pass ID of parent channel if command used in a thread.
+  if (
+    (await praiseAllowedInChannel(
+      interaction,
+      channel.type === 'GUILD_PUBLIC_THREAD' ||
+        channel.type === 'GUILD_PRIVATE_THREAD'
+        ? channel?.parent?.id || channel.id
+        : channel.id
+    )) === false
+  )
+    return;
 
   const praiseGiverRoleID = await getSetting('PRAISE_GIVER_ROLE_ID');
   const praiseGiverRole = guild.roles.cache.find(
