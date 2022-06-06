@@ -7,6 +7,13 @@ export const getSetting = async (
   return setting?.value || '';
 };
 
+export const putSetting = async (
+  settingKey: String,
+  updatedValue: String
+): Promise<void> => {
+  await SettingsModel.updateOne({ key: settingKey }, { value: updatedValue });
+};
+
 /*
 export const getAllSettings = async () => {
   const settings = await SettingsModel.find({});

@@ -2,7 +2,7 @@ import { UserModel } from 'api/dist/user/entities';
 import { UserAccountModel } from 'api/dist/useraccount/entities';
 import { CommandInteraction, GuildMember } from 'discord.js';
 import { UserState } from '../interfaces/UserState';
-import { getSetting } from '../utils/getSettings';
+import { getSetting } from '../utils/settings';
 import { getUserAccount } from '../utils/getUserAccount';
 import { getStateEmbed } from '../utils/stateEmbed';
 

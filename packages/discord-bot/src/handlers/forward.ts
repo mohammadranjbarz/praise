@@ -4,7 +4,7 @@ import { UserModel } from 'api/dist/user/entities';
 import { EventLogTypeKey } from 'api/src/eventlog/types';
 import { logEvent } from 'api/src/eventlog/utils';
 import logger from 'jet-logger';
-import { getSetting } from '../utils/getSettings';
+import { getSetting } from '../utils/settings';
 import { getUserAccount } from '../utils/getUserAccount';
 import { UserRole } from 'api/dist/user/types';
 import {

@@ -1,6 +1,5 @@
 import { CommandInteraction } from 'discord.js';
-import { truncate } from 'fs';
-import { getSetting } from '../utils/getSettings';
+import { getSetting } from './settings';
 
 export const praiseAllowedInChannel = async (
   interaction: CommandInteraction,

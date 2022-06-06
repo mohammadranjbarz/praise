@@ -1,5 +1,5 @@
 import { User, MessageEmbed, Role } from 'discord.js';
-import { getSetting } from './getSettings';
+import { getSetting } from './settings';
 
 export const praiseSuccess = async (
   praised: string[],

@@ -5,7 +5,7 @@ import { EventLogTypeKey } from 'api/src/eventlog/types';
 import { logEvent } from 'api/src/eventlog/utils';
 import logger from 'jet-logger';
 import { Message, Util } from 'discord.js';
-import { getSetting } from '../utils/getSettings';
+import { getSetting } from '../utils/settings';
 import {
   dmError,
   invalidReceiverError,
