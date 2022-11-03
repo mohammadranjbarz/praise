@@ -11,3 +11,8 @@ node_modules
 
 .env
 yarn-error.log
+
+terraform/.terraform.lock.hcl
+terraform/.terraform
+terraform/terraform.tfstate*
+terraform/id_rsa*
