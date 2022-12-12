@@ -1,5 +1,8 @@
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { isArray } from 'lodash';
+import sqlite3 from 'sqlite3';
+import { Database, open } from 'sqlite';
+
 import { BadRequestError, NotFoundError } from '@/error/errors';
 import {
   getPraiseAllInput,
@@ -133,4 +136,53 @@ export const quantifyMultiple = async (
 
   const response = await praiseListTransformer(praiseItems.flat());
   res.status(200).json(response);
+};
+
+const openDb = (): Promise<Database<sqlite3.Database, sqlite3.Statement>> => {
+  return open({
+    filename: '/tmp/database.db',
+    driver: sqlite3.Database,
+  });
+};
+
+const initPraiseTable = async (
+  db: Database<sqlite3.Database, sqlite3.Statement>
+): Promise<void> => {
+  const table = await db.get(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='praise';"
+  );
+
+  if (table.name === 'praise') {
+    return;
+  }
+
+  await db.exec('BEGIN TRANSACTION');
+
+  await db.exec(
+    'CREATE TABLE IF NOT EXISTS praise (id char(24) primary key, reason text);'
+  );
+
+  const praise = await PraiseModel.find().populate('giver receiver forwarder');
+  const INSERT_PRAISE = await db.prepare(
+    'INSERT INTO praise (id, reason) VALUES (?,?)'
+  );
+  praise.forEach((p) => {
+    INSERT_PRAISE.run(p._id.toString(), p.reason);
+  });
+  await INSERT_PRAISE.finalize();
+
+  await db.exec('END');
+};
+
+export const exportPraise = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const db = await openDb();
+  await initPraiseTable(db);
+
+  const result = await db.get('SELECT count(*) as count FROM praise');
+  res.status(200).json(result);
+
+  await db.close();
 };

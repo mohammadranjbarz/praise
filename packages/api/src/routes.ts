@@ -35,7 +35,7 @@ baseRouter.use('/periods', periodRouter);
 baseRouter.useAsync('/periodsettings', authMiddleware(UserRole.USER));
 baseRouter.use('/periodsettings', periodsettingsRouter);
 
-baseRouter.useAsync('/praise', authMiddleware(UserRole.USER));
+// baseRouter.useAsync('/praise', authMiddleware(UserRole.USER));
 baseRouter.use('/praise', praiseRouter);
 
 baseRouter.useAsync('/eventlogs', authMiddleware(UserRole.USER));

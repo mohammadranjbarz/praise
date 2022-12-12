@@ -5,6 +5,7 @@ import { UserRole } from '@/user/types';
 
 // Praise-routes
 const praiseRouter = Router();
+praiseRouter.getAsync('/export', controller.exportPraise);
 praiseRouter.getAsync('/all', controller.all);
 praiseRouter.getAsync('/:id', controller.single);
 praiseRouter.patchAsync(
