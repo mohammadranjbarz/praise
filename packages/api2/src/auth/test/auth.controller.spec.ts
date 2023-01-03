@@ -31,7 +31,7 @@ describe('AuthController', () => {
   });
 
   describe('nonce', () => {
-    beforeEach(async () => {
+    beforeEach(() => {
       jest.clearAllMocks();
     });
 
@@ -40,6 +40,7 @@ describe('AuthController', () => {
         identityEthAddress: '0xF2f5C73fa04406b1995e397B55c24aB1f3eA726C',
       };
       await authController.nonce(nonceRequestDto);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(ethSignatureService.generateUserNonce).toBeCalledWith(
         nonceRequestDto.identityEthAddress,
       );
@@ -56,11 +57,12 @@ describe('AuthController', () => {
       });
     });
 
-    test('should throw InternalServerErrorException if authService.generateUserNonce fails', async () => {
+    test('should throw InternalServerErrorException if authService.generateUserNonce fails', () => {
       const nonceRequestDto = {
         identityEthAddress: '0xF2f5C73fa04406b1995e397B55c24aB1f3eA726C',
       };
       ethSignatureService.generateUserNonce = jest.fn().mockReturnValue(null);
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       expect(authController.nonce(nonceRequestDto)).rejects.toThrowError(
         'Failed to generate nonce.',
       );

@@ -862,7 +862,7 @@ describe('Praise (E2E)', () => {
     });
 
     test('401 when not authenticated', async () => {
-      return request(server).put(`/praise/quantify`).send().expect(401);
+      return request(server).put('/praise/quantify').send().expect(401);
     });
 
     test('200 when correct data is sent', async () => {
@@ -879,7 +879,7 @@ describe('Praise (E2E)', () => {
       });
 
       const response = await authorizedPutRequest(
-        `/praise/quantify`,
+        '/praise/quantify',
         app,
         users[0].accessToken,
         {

@@ -6917,6 +6917,7 @@ __metadata:
     tsconfig-paths: 4.1.0
     tsconfig-paths-jest: ^0.0.1
     typescript: ^4.7.4
+    umzug: ^3.2.1
   languageName: unknown
   linkType: soft
 
@@ -21006,7 +21007,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"umzug@npm:^3.0.0":
+"umzug@npm:^3.0.0, umzug@npm:^3.2.1":
   version: 3.2.1
   resolution: "umzug@npm:3.2.1"
   dependencies:

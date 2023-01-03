@@ -9,7 +9,6 @@ import { CreateApiKeyResponse } from './dto/create-api-key-response';
 import { ServiceException } from '@/shared/service-exception';
 import { EventLogService } from '@/event-log/event-log.service';
 import { EventLogTypeKey } from '@/event-log/enums/event-log-type-key';
-import { RequestContext } from 'nestjs-request-context';
 
 @Injectable()
 export class ApiKeyService {
@@ -48,13 +47,13 @@ export class ApiKeyService {
     });
     await apiKey.save();
 
-    this.eventLogService.logEvent({
+    await this.eventLogService.logEvent({
       typeKey: EventLogTypeKey.AUTHENTICATION,
       description: `Created API key: ${apiKey.name}`,
     });
 
     return {
-      ...apiKey.toObject(),
+      ...(apiKey.toObject() as CreateApiKeyResponse),
       key,
     };
   }
@@ -108,7 +107,7 @@ export class ApiKeyService {
       throw new ServiceException('Invalid API key ID');
     }
     apiKey.description = description;
-    apiKey.save();
+    await apiKey.save();
     return apiKey.toObject();
   }
 
@@ -125,7 +124,7 @@ export class ApiKeyService {
     }
     await this.apiKeyModel.deleteOne({ _id: id });
 
-    this.eventLogService.logEvent({
+    await this.eventLogService.logEvent({
       typeKey: EventLogTypeKey.AUTHENTICATION,
       description: `Revoked API key: ${apiKey.name}`,
     });

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { EthSignatureService } from '../eth-signature.service';
@@ -66,8 +67,8 @@ describe('EthSignatureService', () => {
     it('should be defined', () => {
       const msg =
         'SIGN THIS MESSAGE TO LOGIN TO PRAISE.\n\n' +
-        `ADDRESS:\n0x123\n\n` +
-        `NONCE:\n456`;
+        'ADDRESS:\n0x123\n\n' +
+        'NONCE:\n456';
 
       expect(ethSignatureService.generateLoginMessage('0x123', '456')).toEqual(
         msg,

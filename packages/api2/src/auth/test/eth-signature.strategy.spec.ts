@@ -57,6 +57,7 @@ describe('EthSignatureStrategy', () => {
         'signature',
       );
 
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(usersService.findOneByEth).toBeCalledWith(
         userStub.identityEthAddress,
       );

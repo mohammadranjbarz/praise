@@ -198,20 +198,14 @@ export class PraiseService {
       quantification.dismissed = false;
       quantification.duplicatePraise = dp;
 
-      eventLogMessage = `Marked the praise with id "${(
-        praise._id as Types.ObjectId
-      ).toString()}" as duplicate of the praise with id "${(
-        dp._id as Types.ObjectId
-      ).toString()}"`;
+      eventLogMessage = `Marked the praise with id "${praise._id.toString()}" as duplicate of the praise with id "${dp._id.toString()}"`;
     } else if (dismissed) {
       // When dismissing a praise, the score is set to 0, any duplicatePraise is cleared and the dismissed flag is set
       quantification.score = 0;
       quantification.dismissed = true;
       quantification.duplicatePraise = undefined;
 
-      eventLogMessage = `Dismissed the praise with id "${(
-        praise._id as Types.ObjectId
-      ).toString()}"`;
+      eventLogMessage = `Dismissed the praise with id "${praise._id.toString()}"`;
     } else {
       if (!score) {
         throw new ServiceException(
@@ -242,7 +236,7 @@ export class PraiseService {
 
       eventLogMessage = `Gave a score of ${
         quantification.score
-      } to the praise with id "${(praise._id as Types.ObjectId).toString()}"`;
+      } to the praise with id "${praise._id.toString()}"`;
     }
 
     // Save updated quantification

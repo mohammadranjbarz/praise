@@ -28,9 +28,9 @@ const generateUserNameFromAccount = async (
 };
 
 const generateUserName = async (user: any): Promise<string> => {
-  const accounts = (await UserAccountModel.find({
+  const accounts: UserAccount[] = await UserAccountModel.find({
     user: new Types.ObjectId(user._id),
-  })) as UserAccount[];
+  }).lean();
 
   if (accounts && accounts.length > 0) {
     const discordAccount = accounts.find((a) => a.platform === 'DISCORD');
@@ -44,7 +44,7 @@ const generateUserName = async (user: any): Promise<string> => {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (user as any).ethereumAddress;
+  return user.ethereumAddress;
 };
 
 const up = async (): Promise<void> => {

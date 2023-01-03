@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import {
   EventLogType,
   EventLogTypeDocument,
@@ -10,7 +9,7 @@ import {
   EventLogDocument,
   PaginatedEventLogModel,
 } from './schemas/event-log.schema';
-import mongoose from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { PaginationModel } from 'mongoose-paginate-ts';
 import { FindAllPaginatedQuery } from './dto/find-all-paginated-query.dto';
 import { ServiceException } from '@/shared/service-exception';

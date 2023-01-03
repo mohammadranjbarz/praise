@@ -4,6 +4,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '@/users/users.service';
 import { ethers } from 'ethers';
 import { EthSignatureService } from '../eth-signature.service';
+import { User } from '@/users/schemas/users.schema';
 
 @Injectable()
 /**
@@ -29,7 +30,7 @@ export class EthSignatureStrategy extends PassportStrategy(
    * @param signature
    * @returns
    */
-  async validate(identityEthAddress: string, signature: string): Promise<any> {
+  async validate(identityEthAddress: string, signature: string): Promise<User> {
     // Check if user exists
     const user = await this.usersService.findOneByEth(identityEthAddress);
     if (!user) {

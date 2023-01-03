@@ -1,32 +1,30 @@
-import { SettingGroup } from '../../settings/interfaces/settings-group.interface';
-import { PeriodModel } from '../schemas/period/period.schema';
 import { PeriodSettingsModel } from '../schemas/periodsettings/01_periodsettings.schema';
 import { SettingModel } from '../schemas/settings/01_settings.schema';
 
-const insertNewPeriodSettings = async (period: any): Promise<void> => {
-  let settings = await SettingModel.find({
-    group: SettingGroup.PERIOD_DEFAULT,
-  });
-  if (settings && !Array.isArray(settings)) settings = [settings];
+// const insertNewPeriodSettings = async (period: any): Promise<void> => {
+//   let settings = await SettingModel.find({
+//     group: SettingGroup.PERIOD_DEFAULT,
+//   });
+//   if (settings && !Array.isArray(settings)) settings = [settings];
 
-  const newPeriodSettings = settings.map((setting: any) => {
-    const settingObj = setting.toObject() as any;
+//   const newPeriodSettings = settings.map((setting: any) => {
+//     const settingObj = setting.toObject();
 
-    return {
-      // copy original settings
-      ...settingObj,
+//     return {
+//       // copy original settings
+//       ...settingObj,
 
-      // drop unused fields
-      _id: undefined,
-      __v: undefined,
+//       // drop unused fields
+//       _id: undefined,
+//       __v: undefined,
 
-      // set period
-      period: period._id.toString(),
-    } as any;
-  });
+//       // set period
+//       period: period._id.toString(),
+//     };
+//   });
 
-  await PeriodSettingsModel.insertMany(newPeriodSettings);
-};
+//   await PeriodSettingsModel.insertMany(newPeriodSettings);
+// };
 
 const up = async (): Promise<void> => {
   const overridableSettingKeys = [
@@ -61,7 +59,7 @@ const up = async (): Promise<void> => {
   );
 
   // Copy default settings for all existing periods
-  const allPeriods = await PeriodModel.find();
+  // const allPeriods = await PeriodModel.find();
   // await Promise.all(allPeriods.map((p) => insertNewPeriodSettings(p)));
 };
 

@@ -58,9 +58,9 @@ export class UsersService {
 
     await this.eventLogService.logEvent({
       typeKey: EventLogTypeKey.PERMISSION,
-      description: `Added role "${roleChange.role}" to user with id "${(
-        user._id as Types.ObjectId
-      ).toString()}"`,
+      description: `Added role "${
+        roleChange.role
+      }" to user with id "${user._id.toString()}"`,
     });
 
     return new User(user);
@@ -113,9 +113,9 @@ export class UsersService {
 
     await this.eventLogService.logEvent({
       typeKey: EventLogTypeKey.PERMISSION,
-      description: `Removed role "${roleChange.role}" from user with id "${(
-        user._id as Types.ObjectId
-      ).toString()}"`,
+      description: `Removed role "${
+        roleChange.role
+      }" from user with id "${user._id.toString()}"`,
     });
 
     return new User(user);

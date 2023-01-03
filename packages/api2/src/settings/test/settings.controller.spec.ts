@@ -33,7 +33,7 @@ describe('SettingsController', () => {
   });
 
   describe('GET /api/settings/:id', () => {
-    it('200 response with json body containing a setting', async function () {
+    it('200 response with json body containing a setting', async () => {
       const response = await settingsController.findOne(settingStub._id);
       expect(response._id).toEqual(settingStub._id);
     });

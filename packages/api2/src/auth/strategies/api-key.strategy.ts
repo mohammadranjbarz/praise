@@ -15,7 +15,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
     });
   }
 
-  async validate(apiKey: any): Promise<AuthContext | null> {
+  async validate(apiKey: string): Promise<AuthContext | null> {
     const key = await this.apiKeyService.findOneByKey(apiKey);
     if (key) {
       return {

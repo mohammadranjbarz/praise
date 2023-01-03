@@ -164,7 +164,7 @@ describe('AuthController (E2E)', () => {
     /**
      *
      */
-    test('401 response when signature mismatch', async function () {
+    test('401 response when signature mismatch', async () => {
       const wallet = Wallet.createRandom();
 
       await request(server)
@@ -187,7 +187,7 @@ describe('AuthController (E2E)', () => {
     /**
      *
      */
-    test('401 response when nonce invalid', async function () {
+    test('401 response when nonce invalid', async () => {
       const wallet = Wallet.createRandom();
 
       await request(server)
@@ -214,7 +214,7 @@ describe('AuthController (E2E)', () => {
     /**
      *
      */
-    test('401 response when message badly formatted', async function () {
+    test('401 response when message badly formatted', async () => {
       const wallet = Wallet.createRandom();
 
       const response = await request(server)
@@ -241,7 +241,7 @@ describe('AuthController (E2E)', () => {
     /**
      *
      */
-    test('201 response with accessToken & refreshToken', async function () {
+    test('201 response with accessToken & refreshToken', async () => {
       const wallet = Wallet.createRandom();
 
       const response = await request(server)

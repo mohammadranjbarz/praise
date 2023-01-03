@@ -29,6 +29,7 @@ const up = async (): Promise<void> => {
       filter: { key: s.key },
       update: { $set: { type: s.newType } },
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   })) as any;
 
   await SettingModel.bulkWrite(settingUpdates);
@@ -40,6 +41,7 @@ const down = async (): Promise<void> => {
       filter: { key: s.key },
       update: { $set: { type: s.originalType } },
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   })) as any;
 
   await SettingModel.bulkWrite(settingUpdates);

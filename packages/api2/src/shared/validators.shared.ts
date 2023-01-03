@@ -10,12 +10,12 @@ import { ethers } from 'ethers';
 @ValidatorConstraint({ name: 'IsEthAddress' })
 @Injectable()
 export class IsEthAddressRule implements ValidatorConstraintInterface {
-  validate(value: string) {
+  validate(value: string): boolean {
     return ethers.utils.isAddress(value);
   }
 
-  defaultMessage() {
-    return `($value) is not a valid Ethereum address.`;
+  defaultMessage(): string {
+    return '($value) is not a valid Ethereum address.';
   }
 }
 

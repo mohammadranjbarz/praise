@@ -7,7 +7,7 @@ export const UserSchema = new Schema({
   _id: {
     type: ObjectId,
     required: true,
-    set: (value: string) => value.toString(),
+    set: (value: string): string => value.toString(),
   },
   rewardsEthAddress: {
     type: String,

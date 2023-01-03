@@ -19,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<AuthContext | null> {
+  validate(payload: JwtPayload): AuthContext | null {
     return { ...payload, userId: new Types.ObjectId(payload.userId) };
   }
 }

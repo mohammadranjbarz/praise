@@ -116,6 +116,7 @@ const up = async (): Promise<void> => {
       update: { $setOnInsert: { ...s } },
       upsert: true,
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   })) as any;
 
   await SettingModel.bulkWrite(settingUpdates);
