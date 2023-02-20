@@ -1,4 +1,4 @@
-import * as request from 'supertest';
+import request from 'supertest';
 import {
   ConsoleLogger,
   INestApplication,
@@ -8,13 +8,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from '../src/app.module';
 import { Server } from 'http';
 import { Wallet } from 'ethers';
-import { ServiceExceptionFilter } from '@/shared/service-exception.filter';
+import { ServiceExceptionFilter } from '@/shared/filters/service-exception.filter';
 import { UsersService } from '@/users/users.service';
 import { UsersModule } from '@/users/users.module';
 import { UsersSeeder } from '@/database/seeder/users.seeder';
 import {
   authorizedGetRequest,
-  authorizedPutRequest,
+  authorizedPatchRequest,
   loginUser,
 } from './test.common';
 import { runDbMigrations } from '@/database/migrations';
@@ -25,8 +25,8 @@ import { PeriodsService } from '../src/periods/services/periods.service';
 import { PraiseSeeder } from '@/database/seeder/praise.seeder';
 import { QuantificationsSeeder } from '@/database/seeder/quantifications.seeder';
 import { UserAccountsSeeder } from '@/database/seeder/useraccounts.seeder';
-import { PraiseService } from '@/praise/praise.service';
-import { QuantificationsService } from '@/quantifications/quantifications.service';
+import { PraiseService } from '@/praise/services/praise.service';
+import { QuantificationsService } from '@/quantifications/services/quantifications.service';
 import { Praise } from '@/praise/schemas/praise.schema';
 import { UserAccountsService } from '@/useraccounts/useraccounts.service';
 import { PeriodsSeeder } from '@/database/seeder/periods.seeder';
@@ -44,6 +44,8 @@ import { Types } from 'mongoose';
 import { AuthRole } from '@/auth/enums/auth-role.enum';
 import { User } from '@/users/schemas/users.schema';
 import { Setting } from '@/settings/schemas/settings.schema';
+import { SettingsService } from '@/settings/settings.service';
+import { faker } from '@faker-js/faker';
 
 class LoggedInUser {
   accessToken: string;
@@ -62,11 +64,14 @@ describe('Praise (E2E)', () => {
   let periodsService: PeriodsService;
   let periodsSeeder: PeriodsSeeder;
   let settingsSeeder: SettingsSeeder;
+  let settingsService: SettingsService;
   let periodSettingsService: PeriodSettingsService;
   let periodSettingsSeeder: PeriodSettingsSeeder;
   let quantificationsSeeder: QuantificationsSeeder;
   let quantificationsService: QuantificationsService;
   let userAccountsService: UserAccountsService;
+  let adminUser: User;
+  let adminUserAccessToken: string;
 
   const users: LoggedInUser[] = [];
 
@@ -98,6 +103,8 @@ describe('Praise (E2E)', () => {
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
       }),
     );
     app.useGlobalFilters(new ServiceExceptionFilter());
@@ -117,6 +124,7 @@ describe('Praise (E2E)', () => {
     );
     userAccountsService = module.get<UserAccountsService>(UserAccountsService);
     settingsSeeder = module.get<SettingsSeeder>(SettingsSeeder);
+    settingsService = module.get<SettingsService>(SettingsService);
     periodsSeeder = module.get<PeriodsSeeder>(PeriodsSeeder);
     periodsService = module.get<PeriodsService>(PeriodsService);
     periodSettingsSeeder =
@@ -132,6 +140,7 @@ describe('Praise (E2E)', () => {
     await userAccountsService.getModel().deleteMany({});
     await periodsService.getModel().deleteMany({});
     await periodSettingsService.getModel().deleteMany({});
+    await settingsService.getModel().deleteMany({});
 
     // Seed and login 3 users
     for (let i = 0; i < 3; i++) {
@@ -148,10 +157,143 @@ describe('Praise (E2E)', () => {
         wallet,
       });
     }
+
+    const wallet = Wallet.createRandom();
+    adminUser = await usersSeeder.seedUser({
+      identityEthAddress: wallet.address,
+      rewardsAddress: wallet.address,
+      roles: [AuthRole.ADMIN],
+    });
+    const response = await loginUser(app, module, wallet);
+    adminUserAccessToken = response.accessToken;
   });
 
   afterAll(async () => {
     await app.close();
+  });
+
+  describe('GET /api/praise/export', () => {
+    let praise: Praise;
+    const praises: Praise[] = [];
+    let startDate: Date;
+    let endDate: Date;
+    let dateBetween: Date;
+    let period: Period;
+
+    beforeAll(async () => {
+      // Clear the database
+      await praiseService.getModel().deleteMany({});
+
+      startDate = faker.date.past();
+      dateBetween = faker.date.recent();
+      endDate = faker.date.future();
+
+      praise = await praiseSeeder.seedPraise({
+        createdAt: endDate,
+      });
+
+      praises.push(praise);
+
+      praises.push(
+        await praiseSeeder.seedPraise({
+          createdAt: dateBetween,
+        }),
+      );
+
+      praises.push(
+        await praiseSeeder.seedPraise({
+          createdAt: startDate,
+        }),
+      );
+
+      await periodsSeeder.seedPeriod({
+        endDate: praises[0].createdAt,
+        status: PeriodStatusType.QUANTIFY,
+      });
+
+      await periodsSeeder.seedPeriod({
+        endDate: praises[1].createdAt,
+        status: PeriodStatusType.QUANTIFY,
+      });
+
+      period = await periodsSeeder.seedPeriod({
+        endDate: praises[2].createdAt,
+        status: PeriodStatusType.QUANTIFY,
+      });
+    });
+
+    test('401 when not authenticated', async () => {
+      await request(server).get('/praise/export').send().expect(401);
+    });
+
+    test('200 when authenticated', async () => {
+      await authorizedGetRequest(
+        `/praise/export?format=json&startDate=${dateBetween.toISOString()}&endDate=${endDate.toISOString()}`,
+        app,
+        adminUserAccessToken,
+      ).expect(200);
+    });
+
+    test('400 when filtering by periodId and date range', async () => {
+      const response = await authorizedGetRequest(
+        `/praise/export?format=json&periodId=6348acd2e1a47ca32e79f46f&startDate=${dateBetween.toISOString()}&endDate=${endDate.toISOString()}`,
+        app,
+        adminUserAccessToken,
+      ).expect(400);
+      expect(response.body.message).toBe(
+        'Invalid date filtering option. When periodId is set, startDate and endDate should not be set.',
+      );
+    });
+
+    test('returns quantification filtered by latest periodId', async () => {
+      const response = await authorizedGetRequest(
+        `/praise/export?format=json&periodId=${period._id}`,
+        app,
+        adminUserAccessToken,
+      ).expect(200);
+
+      expect(response.body.length).toBe(1);
+      expect(String(praises[2]._id) === response.body[0]._id).toBeTruthy();
+    });
+
+    test('returns praises that matches seeded list in json format, filtered by date', async () => {
+      const response = await authorizedGetRequest(
+        `/praise/export?format=json&startDate=${dateBetween.toISOString()}&endDate=${endDate.toISOString()}`,
+        app,
+        adminUserAccessToken,
+      ).expect(200);
+      // exclude praise from startDate
+      expect(response.body.length).toBe(2);
+      for (const returnedPraise of response.body) {
+        expect(
+          praises.some(
+            (createdPraise) => String(createdPraise._id) === returnedPraise._id,
+          ),
+          // eslint-disable-next-line jest-extended/prefer-to-be-true
+        ).toBe(true);
+      }
+    });
+
+    test('returns praises that matches seeded list in csv format, filtered by date', async () => {
+      const response = await authorizedGetRequest(
+        `/praise/export?format=csv&startDate=${dateBetween.toISOString()}&endDate=${endDate.toISOString()}`,
+        app,
+        adminUserAccessToken,
+      ).expect(200);
+      expect(response.text).toBeDefined();
+      expect(response.text).toContain(praises[0].createdAt.toISOString());
+      expect(response.text).toContain('_id');
+      expect(response.text).toContain('reasonRaw');
+      expect(response.text).toContain('reason');
+      expect(response.text).toContain('sourceId');
+      expect(response.text).toContain('sourceName');
+      expect(response.text).toContain('score');
+      expect(response.text).toContain('receiver');
+      expect(response.text).toContain('giver');
+      expect(response.text).toContain('forwarder');
+      expect(response.text).toContain('createdAt');
+      expect(response.text).toContain('updatedAt');
+    });
   });
 
   describe('GET /api/praise', () => {
@@ -185,9 +327,13 @@ describe('Praise (E2E)', () => {
         users[0].accessToken,
       );
       expect(response.status).toBe(200);
+
+      const p = response.body;
+      expect(p).toBeProperlySerialized();
+      expect(p).toBeValidClass(Praise);
     });
 
-    it('oiu should return the expected pagination object when called with query parameters', async () => {
+    test('200 and should return the expected pagination object when called with query parameters', async () => {
       //Clear the database
       await praiseService.getModel().deleteMany({});
 
@@ -234,6 +380,9 @@ describe('Praise (E2E)', () => {
       expect(praise.score).toBe(praise2!.score);
       expect(praise.sourceId).toBe(praise2!.sourceId);
       expect(praise.sourceName).toBe(praise2!.sourceName);
+
+      expect(praise).toBeProperlySerialized();
+      expect(praise).toBeValidClass(Praise);
     });
   });
 
@@ -280,6 +429,9 @@ describe('Praise (E2E)', () => {
       expect(p.score).toBe(praise.score);
       expect(p.sourceId).toBe(praise.sourceId);
       expect(p.sourceName).toBe(praise.sourceName);
+
+      expect(p).toBeProperlySerialized();
+      expect(p).toBeValidClass(Praise);
     });
 
     test('400 when praise does not exist', async () => {
@@ -300,6 +452,9 @@ describe('Praise (E2E)', () => {
     beforeEach(async () => {
       await praiseService.getModel().deleteMany({});
       await quantificationsService.getModel().deleteMany({});
+      await settingsService.getModel().deleteMany({});
+      await periodsService.getModel().deleteMany({});
+      await periodSettingsService.getModel().deleteMany({});
 
       praise = await praiseSeeder.seedPraise();
 
@@ -332,13 +487,13 @@ describe('Praise (E2E)', () => {
 
     test('401 when not authenticated', async () => {
       return request(server)
-        .put(`/praise/${praise._id}/quantify`)
+        .patch(`/praise/${praise._id}/quantify`)
         .send()
         .expect(401);
     });
 
     test('Invalid quantification parameters - no parameters', async () => {
-      const response = await authorizedPutRequest(
+      const response = await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[0].accessToken,
@@ -349,7 +504,7 @@ describe('Praise (E2E)', () => {
     });
 
     test('Invalid quantification parameters - score is string', async () => {
-      const response = await authorizedPutRequest(
+      const response = await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[0].accessToken,
@@ -362,7 +517,7 @@ describe('Praise (E2E)', () => {
     });
 
     test('Invalid quantification parameters - score is too large', async () => {
-      const response = await authorizedPutRequest(
+      const response = await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[0].accessToken,
@@ -375,7 +530,7 @@ describe('Praise (E2E)', () => {
     });
 
     test('Invalid quantification parameters - duplicate is not booleans ', async () => {
-      const response = await authorizedPutRequest(
+      const response = await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[0].accessToken,
@@ -388,7 +543,7 @@ describe('Praise (E2E)', () => {
     });
 
     test('200 and correct body when quantifying - single quantification', async () => {
-      const response = await authorizedPutRequest(
+      const response = await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[0].accessToken,
@@ -412,10 +567,13 @@ describe('Praise (E2E)', () => {
       expect(p.quantifications[0].praise).toBe(praise._id.toString());
       expect(p.quantifications[0].dismissed).toBeFalsy();
       expect(p.quantifications[0].createdAt).toBeDefined();
+
+      expect(p).toBeProperlySerialized();
+      expect(p).toBeValidClass(Praise);
     });
 
     test('400 when wrong score is sent', async () => {
-      const response = await authorizedPutRequest(
+      const response = await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[0].accessToken,
@@ -432,7 +590,7 @@ describe('Praise (E2E)', () => {
     });
 
     test('400 when praise does not exist', async () => {
-      return authorizedPutRequest(
+      return authorizedPatchRequest(
         `/praise/${new Types.ObjectId()}/quantify`,
         app,
         users[0].accessToken,
@@ -450,7 +608,7 @@ describe('Praise (E2E)', () => {
         status: PeriodStatusType.QUANTIFY,
       });
 
-      return authorizedPutRequest(
+      return authorizedPatchRequest(
         `/praise/${praiseItem._id}/quantify`,
         app,
         users[0].accessToken,
@@ -468,7 +626,7 @@ describe('Praise (E2E)', () => {
         status: PeriodStatusType.OPEN,
       });
 
-      return authorizedPutRequest(
+      return authorizedPatchRequest(
         `/praise/${praiseItem._id}/quantify`,
         app,
         users[0].accessToken,
@@ -490,7 +648,7 @@ describe('Praise (E2E)', () => {
         status: PeriodStatusType.QUANTIFY,
       });
 
-      return authorizedPutRequest(
+      return authorizedPatchRequest(
         `/praise/${praiseItem._id}/quantify`,
         app,
         accessTokenAuth,
@@ -508,7 +666,7 @@ describe('Praise (E2E)', () => {
         status: PeriodStatusType.QUANTIFY,
       });
 
-      return authorizedPutRequest(
+      return authorizedPatchRequest(
         `/praise/${praiseItem._id}/quantify`,
         app,
         users[0].accessToken,
@@ -527,7 +685,7 @@ describe('Praise (E2E)', () => {
         status: PeriodStatusType.QUANTIFY,
       });
 
-      return authorizedPutRequest(
+      return authorizedPatchRequest(
         `/praise/${praiseItem._id}/quantify`,
         app,
         users[0].accessToken,
@@ -550,7 +708,7 @@ describe('Praise (E2E)', () => {
         createdAt: praise.createdAt.getDate() - 1,
       });
 
-      return authorizedPutRequest(
+      return authorizedPatchRequest(
         `/praise/${praiseItem._id}/quantify`,
         app,
         users[0].accessToken,
@@ -579,7 +737,7 @@ describe('Praise (E2E)', () => {
         praise: duplicatePraise._id,
       });
 
-      return authorizedPutRequest(
+      return authorizedPatchRequest(
         `/praise/${praiseItem._id}/quantify`,
         app,
         users[0].accessToken,
@@ -609,7 +767,7 @@ describe('Praise (E2E)', () => {
         duplicatePraiseId: duplicatePraise._id.toString(),
       });
 
-      return authorizedPutRequest(
+      return authorizedPatchRequest(
         `/praise/${praiseItem._id}/quantify`,
         app,
         users[0].accessToken,
@@ -638,7 +796,7 @@ describe('Praise (E2E)', () => {
         praise: duplicatePraise._id,
       });
 
-      return authorizedPutRequest(
+      return authorizedPatchRequest(
         `/praise/${praiseItem._id}/quantify`,
         app,
         users[0].accessToken,
@@ -657,6 +815,9 @@ describe('Praise (E2E)', () => {
     beforeEach(async () => {
       await praiseService.getModel().deleteMany({});
       await quantificationsService.getModel().deleteMany({});
+      await settingsService.getModel().deleteMany({});
+      await periodsService.getModel().deleteMany({});
+      await periodSettingsService.getModel().deleteMany({});
 
       praise = await praiseSeeder.seedPraise();
 
@@ -689,7 +850,7 @@ describe('Praise (E2E)', () => {
 
       await periodSettingsSeeder.seedPeriodSettings({
         period: period,
-        setitng: allowedValuesSetting,
+        setting: allowedValuesSetting,
         value: '0, 1, 3, 5, 8, 13, 21, 34, 55, 89, 144',
       });
       await periodSettingsSeeder.seedPeriodSettings({
@@ -701,7 +862,7 @@ describe('Praise (E2E)', () => {
 
     test('Quantifying multiple praise - scores and averages correct', async () => {
       // Quantify, quantifier 1
-      await authorizedPutRequest(
+      await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[0].accessToken,
@@ -710,7 +871,7 @@ describe('Praise (E2E)', () => {
         },
       );
       // Quantify, quantifier 2
-      await authorizedPutRequest(
+      await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[1].accessToken,
@@ -719,7 +880,7 @@ describe('Praise (E2E)', () => {
         },
       );
       // Quantify, quantifier 3
-      await authorizedPutRequest(
+      await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[2].accessToken,
@@ -740,11 +901,14 @@ describe('Praise (E2E)', () => {
       expect(p).toBeDefined();
       expect(p.quantifications.length).toBe(3);
       expect(p.score).toBe(55);
+
+      expect(p).toBeProperlySerialized();
+      expect(p).toBeValidClass(Praise);
     });
 
     test('Quantifying multiple praise - scores and averages correct - with dismissed', async () => {
       // Quantify, quantifier 1
-      await authorizedPutRequest(
+      await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[0].accessToken,
@@ -753,7 +917,7 @@ describe('Praise (E2E)', () => {
         },
       );
       // Quantify, quantifier 2
-      await authorizedPutRequest(
+      await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[1].accessToken,
@@ -762,7 +926,7 @@ describe('Praise (E2E)', () => {
         },
       );
       // Quantify, quantifier 3
-      await authorizedPutRequest(
+      await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[2].accessToken,
@@ -783,6 +947,9 @@ describe('Praise (E2E)', () => {
       expect(p).toBeDefined();
       expect(p.quantifications.length).toBe(3);
       expect(p.score).toBe(76);
+
+      expect(p).toBeProperlySerialized();
+      expect(p).toBeValidClass(Praise);
     });
 
     test('Quantifying multiple praise - scores and averages correct - with duplicates and dismissed', async () => {
@@ -796,7 +963,7 @@ describe('Praise (E2E)', () => {
       });
 
       // Quantify, quantifier 1
-      await authorizedPutRequest(
+      await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[0].accessToken,
@@ -805,7 +972,7 @@ describe('Praise (E2E)', () => {
         },
       );
       // Quantify, quantifier 2
-      await authorizedPutRequest(
+      await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[1].accessToken,
@@ -815,7 +982,7 @@ describe('Praise (E2E)', () => {
       );
       // Quantify, quantifier 3
       // Give score to duplicate praise
-      await authorizedPutRequest(
+      await authorizedPatchRequest(
         `/praise/${praise2._id}/quantify`,
         app,
         users[2].accessToken,
@@ -824,7 +991,7 @@ describe('Praise (E2E)', () => {
         },
       );
       // Mark second quantification as duplicate
-      await authorizedPutRequest(
+      await authorizedPatchRequest(
         `/praise/${praise._id}/quantify`,
         app,
         users[2].accessToken,
@@ -839,6 +1006,8 @@ describe('Praise (E2E)', () => {
         users[0].accessToken,
       );
 
+      // console.log('response.body', response.body);
+
       expect(response.status).toBe(200);
 
       const p = response.body;
@@ -851,6 +1020,9 @@ describe('Praise (E2E)', () => {
       );
       expect(duplicateQuant).toBeDefined();
       expect(duplicateQuant.scoreRealized).toBe(14.4);
+
+      expect(p).toBeProperlySerialized();
+      expect(p).toBeValidClass(Praise);
     });
   });
 
@@ -859,6 +1031,12 @@ describe('Praise (E2E)', () => {
     let period: Period;
 
     beforeEach(async () => {
+      await praiseService.getModel().deleteMany({});
+      await quantificationsService.getModel().deleteMany({});
+      await settingsService.getModel().deleteMany({});
+      await periodsService.getModel().deleteMany({});
+      await periodSettingsService.getModel().deleteMany({});
+
       praise = await praiseSeeder.seedPraise();
 
       await quantificationsSeeder.seedQuantification({
@@ -888,7 +1066,7 @@ describe('Praise (E2E)', () => {
     });
 
     test('401 when not authenticated', async () => {
-      return request(server).put(`/praise/quantify`).send().expect(401);
+      return request(server).patch(`/praise/quantify`).send().expect(401);
     });
 
     test('200 when correct data is sent', async () => {
@@ -904,7 +1082,7 @@ describe('Praise (E2E)', () => {
         praise: praise2._id,
       });
 
-      const response = await authorizedPutRequest(
+      const response = await authorizedPatchRequest(
         `/praise/quantify`,
         app,
         users[0].accessToken,
@@ -917,6 +1095,10 @@ describe('Praise (E2E)', () => {
       );
 
       expect(response.status).toBe(200);
+
+      const p = response.body as Praise[];
+      expect(p).toBeProperlySerialized();
+      expect(p).toBeValidClass(Praise);
     });
   });
 });

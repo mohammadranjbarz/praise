@@ -1,5 +1,4 @@
 import { PraiseDto } from '@/model/praise/praise.dto';
-import { PaginatedResponseBody } from 'api/dist/shared/types';
 import { AxiosError, AxiosResponse } from 'axios';
 import React from 'react';
 import {
@@ -13,6 +12,7 @@ import {
 } from 'recoil';
 import { useApiAuthClient } from '@/utils/api';
 import { ApiAuthGet, isApiResponseAxiosError, isResponseOk } from '../api';
+import { PaginatedResponseBody } from 'shared/interfaces/paginated-response-body.interface';
 
 /**
  * Types for `useParams()`
@@ -280,8 +280,17 @@ export const useQuantifyPraise = (): useQuantifyPraiseReturn => {
   return { quantify };
 };
 
+type quantifyMultipleParams = {
+  score: number;
+  duplicatePraise?: string | null;
+  dismissed?: boolean;
+};
+
 type useQuantifyMultiplePraiseReturn = {
-  quantifyMultiple: (score: number, praiseIds: string[]) => Promise<void>;
+  quantifyMultiple: (
+    params: quantifyMultipleParams,
+    praiseIds: string[]
+  ) => Promise<void>;
 };
 
 /**
@@ -293,10 +302,13 @@ export const useQuantifyMultiplePraise =
 
     const quantifyMultiple = useRecoilCallback(
       ({ set }) =>
-        async (score: number, praiseIds: string[]): Promise<void> => {
+        async (
+          params: quantifyMultipleParams,
+          praiseIds: string[]
+        ): Promise<void> => {
           const response: AxiosResponse<PraiseDto[]> =
             await apiAuthClient.patch('/praise/quantify', {
-              score,
+              params,
               praiseIds,
             });
           if (isResponseOk(response)) {

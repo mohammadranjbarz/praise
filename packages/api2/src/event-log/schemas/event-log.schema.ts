@@ -1,11 +1,11 @@
-import { ExposeId } from '@/shared/expose-id.decorator';
+import { ExposeId } from '@/shared/decorators/expose-id.decorator';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { ApiProperty, ApiResponseProperty } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Document, model, Types } from 'mongoose';
 import { mongoosePagination, Pagination } from 'mongoose-paginate-ts';
 import { EventLogType } from './event-log-type.schema';
 import { Type } from 'class-transformer';
-import { IsString, Validate, ValidateNested } from 'class-validator';
+import { IsString, ValidateNested } from 'class-validator';
 
 export type EventLogDocument = EventLog & Document;
 
@@ -80,7 +80,7 @@ export class EventLog {
 export const EventLogSchema =
   SchemaFactory.createForClass(EventLog).plugin(mongoosePagination);
 
-export const EventLogModel = model<
-  EventLogDocument,
-  Pagination<EventLogDocument>
->('EventLog', EventLogSchema);
+export const EventLogModel = model<EventLog, Pagination<EventLog>>(
+  'EventLog',
+  EventLogSchema,
+);

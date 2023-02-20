@@ -1,10 +1,9 @@
 import { Type } from 'class-transformer';
-import { model, SchemaTypes, Types } from 'mongoose';
+import { SchemaTypes, Types } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Platform } from '../interfaces/platform/platform.interface';
 import { ApiProperty, ApiResponseProperty } from '@nestjs/swagger';
 import { User } from '@/users/schemas/users.schema';
-import { ExposeId } from '@/shared/expose-id.decorator';
+import { ExposeId } from '@/shared/decorators/expose-id.decorator';
 
 export type UserAccountDocument = UserAccount & Document;
 
@@ -48,7 +47,7 @@ export class UserAccount {
   @ApiResponseProperty({
     example: 'DISCORD',
   })
-  @Prop({ type: String, enum: Platform, required: true })
+  @Prop({ type: String, required: true })
   platform: string;
 
   @Prop({ select: false })
@@ -65,7 +64,13 @@ export class UserAccount {
 
 export const UserAccountSchema = SchemaFactory.createForClass(UserAccount);
 
-export const UserAccountModel = model<UserAccountDocument>(
-  'UserAccount',
-  UserAccountSchema,
-);
+export const UserAccountsExportSqlSchema = `
+  _id VARCHAR, 
+  "accountId" VARCHAR, 
+  "user" VARCHAR, 
+  "name" VARCHAR, 
+  "avatarId" VARCHAR, 
+  platform VARCHAR, 
+  "createdAt" TIMESTAMP, 
+  "updatedAt" TIMESTAMP
+`;
